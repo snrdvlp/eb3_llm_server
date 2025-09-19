@@ -16,7 +16,7 @@ class LLMRequest(BaseModel):
 tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR)
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_DIR,
-    torch_dtype=torch.float16,
+    dtype=torch.float16,
     device_map="auto"
 )
 try:
@@ -26,16 +26,32 @@ except Exception:
 
 @app.post("/chat")
 async def chat_endpoint(req: LLMRequest):
-    prompt = f"{req.system_prompt}\n\n{req.user_prompt}"
-    input_ids = tokenizer(prompt, return_tensors="pt").input_ids.to(model.device)
-    gen_args = {
-        "input_ids": input_ids,
-        "max_new_tokens": req.max_new_tokens,
-    }
-    if gen_config:
-        gen_args["generation_config"] = gen_config
-    generated_ids = model.generate(**gen_args)
-    output = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
-    # Optionally strip prompt from output
-    response = output[len(prompt):].strip() if output.startswith(prompt) else output.strip()
-    return {"response": response}
+    try:
+        messages = [
+            {"role": "system", "content": req.system_prompt},
+            {"role": "user", "content": req.user_prompt}
+        ]
+        text = tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True,
+            chat_template="""{% for message in messages %}
+<|{{ message['role'] }}|>
+{{ message['content'] }}
+{% endfor %}
+<|assistant|>
+"""
+        )
+        model_inputs = tokenizer([text], return_tensors="pt").to(model.device)
+
+        generated_ids = model.generate(
+            **model_inputs,
+            max_new_tokens=1024 ,
+            do_sample=False,
+            repetition_penalty=1.0
+        )
+        response = tokenizer.decode(generated_ids[0][model_inputs["input_ids"].shape[-1]:])
+        return {"response": response}
+
+    except Exception as e:
+        return {"error": str(e)}
