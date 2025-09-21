@@ -38,9 +38,7 @@ async def chat_endpoint(req: LLMRequest):
             chat_template="""{% for message in messages %}
 <|{{ message['role'] }}|>
 {{ message['content'] }}
-{% endfor %}
-<|assistant|>
-"""
+{% endfor %}"""
         )
         model_inputs = tokenizer([text], return_tensors="pt").to(model.device)
 
