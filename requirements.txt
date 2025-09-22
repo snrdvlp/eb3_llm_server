@@ -4,3 +4,6 @@ torch
 transformers
 pydantic
 accelerate
+bitsandbytes
+flash-attn
+# pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
