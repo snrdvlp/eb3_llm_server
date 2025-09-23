@@ -11,15 +11,18 @@ app = FastAPI()
 class LLMRequest(BaseModel):
     system_prompt: str
     user_prompt: str
-    max_new_tokens: int = 1024
+    max_new_tokens: int = 1024,
+    load_in_8bit=True,
 
 # Load model + tokenizer at startup
 tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR)
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_DIR,
     dtype=torch.float16,
-    device_map="auto"
+    device_map="auto",
+    low_cpu_mem_usage=True
 )
+model.eval()
 
 try:
     gen_config = GenerationConfig.from_pretrained(MODEL_DIR)
