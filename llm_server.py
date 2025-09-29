@@ -88,15 +88,15 @@ def build_chat_text(system_prompt: str, user_prompt: str) -> str:
 # -----------------------
 # Main endpoint
 # -----------------------
+import asyncio
+
 @app.post("/chat")
-def chat(req: LLMRequest):
+async def chat(req: LLMRequest):
     global llm_engine, tokenizer
     if llm_engine is None:
         raise HTTPException(status_code=503, detail="LLM engine not ready")
 
     text = build_chat_text(req.system_prompt, req.user_prompt)
-
-    # Estimate output tokens if not set
     max_out = req.max_new_tokens or DEFAULT_MAX_OUTPUT_TOKENS
 
     sampling_params = SamplingParams(
@@ -106,9 +106,12 @@ def chat(req: LLMRequest):
     )
 
     try:
-        # vLLM generate returns generator of GenerationResult objects
-        outputs = llm_engine.generate([text], sampling_params=sampling_params)
-        # take first result (single prompt)
+        # Run blocking generate() in threadpool so FastAPI can serve other requests
+        outputs = await asyncio.to_thread(
+            llm_engine.generate, [text], sampling_params
+        )
+
+        # vLLM’s .generate() returns a list of GenerationResult
         gen = outputs[0]
         return {"response": gen.outputs[0].text}
     except Exception as e:
