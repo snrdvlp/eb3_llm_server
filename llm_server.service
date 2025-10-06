@@ -1,25 +1,22 @@
 [Unit]
-Description=LLM Server (Uvicorn)
+Description=LLM Server (vLLM API)
 After=network.target
 
 [Service]
-# Path to your project directory
-WorkingDirectory=/home/eb3-brayan/eb3_llm_server
+WorkingDirectory=/home/eb3-brayan/
+ExecStart=/usr/bin/python3 -m vllm.entrypoints.openai.api_server \
+    --model Qwen/Qwen2.5-7B-Instruct \
+    --host 0.0.0.0 \
+    --port 8000 \
 
-# Activate your virtual environment
-ExecStart=/home/eb3-brayan/eb3_llm_server/venv/bin/uvicorn llm_server:app --host 0.0.0.0 --port 8000
-
-# Restart automatically if it crashes
 Restart=always
 RestartSec=5
 
-# Run as your user
 User=eb3-brayan
 Group=eb3-brayan
 
-# Logging
-StandardOutput=append:/var/log/llm_server.log
-StandardError=append:/var/log/llm_server_error.log
+StandardOutput=append:/var/log/vllm_server.log
+StandardError=append:/var/log/vllm_server_error.log
 
 [Install]
 WantedBy=multi-user.target
