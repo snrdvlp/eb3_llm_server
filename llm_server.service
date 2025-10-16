@@ -8,8 +8,10 @@ ExecStart=/usr/bin/python3 -m vllm.entrypoints.openai.api_server \
     --model Qwen/Qwen2.5-7B-Instruct \
     --host 0.0.0.0 \
     --port 8000 \
-    --gpu-memory-utilization 0.9 \
-    --max-num-seqs 10
+    --quantization bitsandbytes \
+    --tensor-parallel-size 1
+    --max-num-seqs 16 \
+    --uvicorn-log-level debug
 
 Restart=always
 RestartSec=5
@@ -17,8 +19,10 @@ RestartSec=5
 User=eb3-brayan
 Group=eb3-brayan
 
-StandardOutput=append:/var/log/vllm_server.log
-StandardError=append:/var/log/vllm_server_error.log
-
+LimitNOFILE=65535
+TimeoutStartSec=300
+TimeoutStopSec=60
+StandardOutput=journal
+StandardError=journal
 [Install]
 WantedBy=multi-user.target
